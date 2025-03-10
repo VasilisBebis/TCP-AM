@@ -3,7 +3,9 @@ package client
 
 import (
 	"fmt"
-	_ "net"
+	"github.com/VasilisBebis/TCP-AM/src/server"
+	"log"
+	"net"
 )
 
 // Header consists of the header fields used
@@ -18,6 +20,34 @@ type Header struct {
 type Message struct {
 	Header Header
 	Data   []byte // message data serialized as a byte array (padding INCLUDED)
+}
+
+type Client struct {
+	Conn net.Conn // client's connector
+}
+
+// NewClient creates an object of type Client and return it
+func NewClient() *Client {
+	client := Client{Conn: nil}
+	return &client
+
+}
+
+// ConnectTo creates a connection between the client and the given server
+func (c *Client) ConnectTo(s server.Server) {
+
+	connc, err := net.Dial("tcp", "localhost:"+s.Port)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.Conn = connc
+}
+
+// CloseConn closes the active connection of the client (if one exists)
+func (c *Client) CloseConn() {
+	if c.Conn != nil {
+		c.Conn.Close()
+	}
 }
 
 func HelloClient() {

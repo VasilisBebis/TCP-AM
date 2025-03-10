@@ -1,31 +1,38 @@
 package main
 
 import (
+	"fmt"
 	"github.com/VasilisBebis/TCP-AM/src/client"
 	"github.com/VasilisBebis/TCP-AM/src/server"
-	"os"
-	// "errors"
+	"sync"
+	"time"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		panic("No arguments provided!")
-	}
-	program := os.Args[1]
+	var wg sync.WaitGroup
 
-	if program == "server" {
-		// _, err := os.Stat("../client/client.go")
-		// if errors.Is(err, os.ErrNotExist) {
-		//
-		// }
-		serv := server.NewServer()
+	serv := server.NewServer()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		serv.OpenServer()
+	}()
+	time.Sleep(time.Second)
+	wg.Add(1)
+	defer serv.CloseServer()
 
-		server.HelloServer()
-	} else if program == "client" {
-		client.HelloClient()
-	} else {
-		panic("Given program not declared")
-	}
+	go func() {
+		defer wg.Done()
+		cl := client.NewClient()
+		cl.ConnectTo(*serv)
+		cl.Conn.Write([]byte("Hello Server"))
+		buf := make([]byte, 1024)
+		_, err := serv.Conn.Read(buf)
+		_ = err
+		fmt.Printf("%s", buf)
+	}()
+
+	wg.Wait()
 
 }

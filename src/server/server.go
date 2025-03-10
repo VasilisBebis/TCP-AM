@@ -33,24 +33,26 @@ func (s *Server) ChangePort(port uint64) {
 
 // OpenServer opens the listening ability on the TCP port of the given server on all available unicast
 // and anycast IP addresses of the local system.
-// It also initiates a connection.
 func (s *Server) OpenServer() {
-	listener, err := net.Listen("tcp", ":"+Def_Port)
+	listener, err := net.Listen("tcp", ":"+s.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
-	conn, err := listener.Accept()
-	if err != nil {
-		log.Fatal(err)
-	}
-	s.Conn = conn
+	fmt.Println("Server listening at port " + s.Port)
 	s.Listener = listener
-	fmt.Println("Server listening at port " + Def_Port)
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.Conn = conn
+	}()
 }
 
-func CloseServer(s *Server) {
-	(*s).Conn.Close()
-	(*s).Listener.Close()
+func (s *Server) CloseServer() {
+	s.Conn.Close()
+	s.Listener.Close()
 }
 
 func HelloServer() {
