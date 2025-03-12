@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/VasilisBebis/TCP-AM/src/client"
-	"github.com/VasilisBebis/TCP-AM/src/server"
+	"github.com/VasilisBebis/TCP-AM/pkg/client"
+	"github.com/VasilisBebis/TCP-AM/pkg/server"
 	"sync"
 	"time"
 )

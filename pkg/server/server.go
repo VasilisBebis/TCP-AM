@@ -8,6 +8,21 @@ import (
 	"strconv"
 )
 
+// Header consists of the header fields used
+// in the server's response message to the client
+type Header struct {
+	Response_code  byte    // indicates if the client's query was successful
+	Length         byte    // length of the data portion of the message in bytes (padding EXCLUDED)
+	Transaction_id [2]byte // unique identifier for the message (query & response)
+}
+
+// Message represents the full response message
+type Message struct {
+	Header  Header
+	Data    []byte // message data serialized as a byte array
+	Padding []byte // used to make the message 32-bit aligned (empty if not needed)
+}
+
 // Default Port used if the port is not specified
 const Def_Port = "12345"
 
@@ -42,15 +57,27 @@ func (s *Server) OpenServer() {
 	s.Listener = listener
 
 	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Fatal(err)
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				if s.Close {
+					return
+				}
+				fmt.Println("Connection Error:", err)
+			}
+			go handleClient(conn)
 		}
-		s.Conn = conn
 	}()
 }
 
+func handleClient(c net.Conn) {
+	defer c.Close()
+	fmt.Println("Client: ", c.RemoteAddr(), " connected")
+
+}
+
 func (s *Server) CloseServer() {
+	s.Close = true
 	s.Conn.Close()
 	s.Listener.Close()
 }
