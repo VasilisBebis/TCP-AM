@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	// "sync"
 )
 
 // Header consists of the header fields used
@@ -28,17 +29,16 @@ const Def_Port = "12345"
 
 type Server struct {
 	Listener net.Listener
-	Conn     net.Conn
-	Port     string
-	Close    bool
+	// Conn     net.Conn
+	Port  string
+	Close bool
 }
 
 // NewServer creates a server that will be able to listen on the given port.
 // By default the server is not opened. To open the server use [OpenServer]
 func NewServer() *Server {
-	server := Server{Listener: nil, Conn: nil, Port: Def_Port, Close: false}
+	server := Server{Listener: nil, Port: Def_Port, Close: false}
 	return &server
-
 }
 
 // ChangePort changes the TCP port that the server will listen on.
@@ -78,8 +78,12 @@ func handleClient(c net.Conn) {
 
 func (s *Server) CloseServer() {
 	s.Close = true
-	s.Conn.Close()
-	s.Listener.Close()
+	// s.Conn.Close()
+	err := s.Listener.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("\nServer Closing")
 }
 
 func HelloServer() {
