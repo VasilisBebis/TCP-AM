@@ -1,4 +1,5 @@
 # Introduction
+⚠️ Project not yet finished!⚠️
 A basic protocol, running over TCP, that can perform calculations over a set of given numbers.
 Created as a part of a Lab exercise for an "Internet Protocols" course.
 
@@ -19,3 +20,4 @@ After installing [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) run:
 ```console
 $ godoc -http=:8000
 ```
+then navigate to [http://localhost:8000/pkg/github.com/VasilisBebis/TCP-AM/pkg/](http://localhost:8000/pkg/github.com/VasilisBebis/TCP-AM/pkg/) to see the documentation for the server and client package
