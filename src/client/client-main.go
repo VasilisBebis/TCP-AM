@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	mess := client.NewMessage(0, []int8{1, 2, 3, 4})
+	mess := client.NewMessage(0, []int8{-5, 2, 3, 4})
 	if mess == nil {
 		fmt.Println("Test")
 		return

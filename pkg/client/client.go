@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+
 	// "github.com/VasilisBebis/TCP-AM/pkg/server"
 	"log"
 	"math/rand/v2"
@@ -99,9 +101,23 @@ func SerializeData(data any) ([]byte, error) {
 
 	switch v := data.(type) {
 	case []int8:
+		bufr := make([]byte, 0, 64)
 		for _, i := range v {
-			binary.Write(buf, binary.BigEndian, i)
+			fmt.Println(int64(i))
+			bufr = binary.AppendVarint(bufr, int64(i))
+			// binary.Write(buf, binary.LittleEndian, i)
 		}
+		reader := bytes.NewReader(bufr)
+		for {
+			val, err := binary.ReadVarint(reader)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+			}
+			fmt.Print(val, " ")
+		}
+		return bufr, nil
 	case []uint8:
 		return []byte(v), nil
 	case []uint16:
@@ -112,9 +128,5 @@ func SerializeData(data any) ([]byte, error) {
 		return nil, fmt.Errorf("Type %T is not supported!", v)
 
 	}
-	// err := binary.Write(buf, binary.BigEndian, data)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 	return buf.Bytes(), nil
 }
