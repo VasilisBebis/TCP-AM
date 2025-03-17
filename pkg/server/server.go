@@ -74,6 +74,12 @@ func handleClient(c net.Conn) {
 	defer c.Close()
 	fmt.Println("Client: ", c.RemoteAddr(), " connected")
 
+	buf := make([]byte, 1024)
+	_, err := c.Read(buf)
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Printf("%s", buf)
 }
 
 func (s *Server) CloseServer() {

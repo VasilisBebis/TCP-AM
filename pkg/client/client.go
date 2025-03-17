@@ -86,6 +86,15 @@ func (c *Client) ConnectTo(server_ip string, server_port string) {
 	c.Conn = conn
 }
 
+// SendMessage sends the given message to the server
+func (c *Client) SendMessage(m Message) {
+	ser_message := m.SerializeMessage()
+	_, err := c.Conn.Write(ser_message)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 // CloseConn closes the active connection of the client (if one exists)
 func (c *Client) CloseConn() {
 	if c.Conn != nil {
