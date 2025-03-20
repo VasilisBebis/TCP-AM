@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	// "sync"
 )
 
 // Header consists of the header fields used
@@ -29,9 +28,8 @@ const Def_Port = "12345"
 
 type Server struct {
 	Listener net.Listener
-	// Conn     net.Conn
-	Port  string
-	Close bool
+	Port     string
+	Close    bool
 }
 
 // NewServer creates a server that will be able to listen on the given port.
@@ -74,7 +72,7 @@ func handleClient(c net.Conn) {
 	defer c.Close()
 	fmt.Println("Client: ", c.RemoteAddr(), " connected")
 
-	buf := make([]byte, 1024)
+	buf := make([]byte, 256)
 	_, err := c.Read(buf)
 	if err != nil {
 		log.Println(err)
@@ -90,8 +88,4 @@ func (s *Server) CloseServer() {
 		log.Fatal(err)
 	}
 	fmt.Println("\nServer Closing")
-}
-
-func HelloServer() {
-	fmt.Println("Hello from Server")
 }

@@ -65,6 +65,17 @@ func (m *Message) SerializeMessage() []byte {
 	return message_bytes
 }
 
+// DeserializeMessage unpacks a byte stream to an object of type [Message]
+func DeserializeMessage(byte_stream []byte) *Message {
+	op_code := byte_stream[0]
+	length := byte_stream[1]
+	transaction_id := byte_stream[2:3]
+	data := byte_stream[4:(4 + length)]
+	h := Header{Op_code: op_code, Length: length, Transaction_id: transaction_id}
+	m := Message{Header: h, Data: data}
+	return &m
+}
+
 type Client struct {
 	Conn net.Conn // client's connector
 }
@@ -82,7 +93,7 @@ func (c *Client) ConnectTo(server_ip string, server_port string) {
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Println("Connected to server ", server_ip)
+	fmt.Println("Connected to server ", server_ip, ":", server_port)
 	c.Conn = conn
 }
 
@@ -121,9 +132,25 @@ func SerializeData(data any) ([]byte, error) {
 		return nil, fmt.Errorf("Type %T is not supported!", v)
 
 	}
-	// err := binary.Write(buf, binary.BigEndian, data)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 	return buf.Bytes(), nil
+}
+
+// DeserializeData returns the data byte stream in its original format
+func DeserializeData(data []byte, data_type string) (any, error) {
+	var des_data any
+	if data_type == "int8" {
+		des_data = make([]int8, len(data))
+	} else if data_type == "uint8" {
+		des_data = make([]uint8, len(data))
+	} else if data_type == "uint16" {
+		des_data = make([]uint16, len(data)/2)
+	} else {
+		return nil, fmt.Errorf("Type %s is not supported", data_type)
+	}
+
+	_, err := binary.Decode(data, binary.BigEndian, des_data)
+	if err != nil {
+		log.Println(err)
+	}
+	return des_data, nil
 }
