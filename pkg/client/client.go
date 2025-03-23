@@ -69,7 +69,7 @@ func (m *Message) SerializeMessage() []byte {
 func DeserializeMessage(byte_stream []byte) *Message {
 	op_code := byte_stream[0]
 	length := byte_stream[1]
-	transaction_id := byte_stream[2:3]
+	transaction_id := byte_stream[2:4]
 	data := byte_stream[4:(4 + length)]
 	h := Header{Op_code: op_code, Length: length, Transaction_id: transaction_id}
 	m := Message{Header: h, Data: data}

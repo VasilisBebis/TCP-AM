@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/VasilisBebis/TCP-AM/pkg/client"
 	"log"
 	"net"
 	"strconv"
+
+	"github.com/VasilisBebis/TCP-AM/pkg/client"
 )
 
 // Header consists of the header fields used
@@ -28,9 +29,9 @@ type Message struct {
 
 // Generates a new Message object that includes the given result
 func NewMessage(response_code byte, transaction_id []byte, result any) *Message {
-
 	bin_result, err := SerializeResult(result)
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	length := len(bin_result)
@@ -41,13 +42,40 @@ func NewMessage(response_code byte, transaction_id []byte, result any) *Message 
 	return &message
 }
 
+// SerializeMessage packs an object of type [Message] to a byte stream (big endian)
+func (m *Message) SerializeMessage() []byte {
+	var message_bytes []byte
+
+	message_bytes = append(message_bytes, []byte{m.Header.Response_code, m.Header.Length}...)
+	message_bytes = append(message_bytes, m.Header.Transaction_id[:]...)
+	message_bytes = append(message_bytes, m.Result...)
+	if len(m.Padding) != 0 {
+		message_bytes = append(message_bytes, m.Padding...)
+	}
+	return message_bytes
+}
+
+// DeserializeMessage unpacks a byte stream to an object of type [Message]
+func DeserializeMessage(byte_stream []byte) *Message {
+	respones_code := byte_stream[0]
+	length := byte_stream[1]
+	transaction_id := byte_stream[2:3]
+	result := byte_stream[4:(4 + length)]
+	h := Header{Response_code: respones_code, Length: length, Transaction_id: transaction_id}
+	m := Message{Header: h, Result: result}
+	return &m
+}
+
 // SerializeResult creates a byte array of the given result
 func SerializeResult(result any) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := result.(type) {
 	case int32:
-		binary.Write(buf, binary.BigEndian, v)
+		err := binary.Write(buf, binary.BigEndian, v)
+		if err != nil {
+			log.Println(err)
+		}
 	case float32:
 		binary.Write(buf, binary.BigEndian, v)
 	case []int32:
@@ -58,6 +86,29 @@ func SerializeResult(result any) ([]byte, error) {
 		return nil, fmt.Errorf("Type %T is not supported!", v)
 	}
 	return buf.Bytes(), nil
+}
+
+//TODO: move DeserializeResult to the client
+
+// DeserializeResult returns the data byte stream in its original format
+func DeserializeResult(result []byte, op_code byte) any {
+	if op_code == 0 {
+		var raw int32
+
+		buf := bytes.NewReader(result)
+		err := binary.Read(buf, binary.BigEndian, &raw)
+		if err != nil {
+			log.Println(err)
+		}
+
+	} else if op_code == 1 {
+		//TODO: implement this
+
+	} else if op_code == 2 {
+		//TODO: implement this
+
+	}
+	return nil
 }
 
 // Default Port used if the port is not specified
@@ -118,13 +169,21 @@ func handleClient(c net.Conn) {
 	message := client.DeserializeMessage(buf)
 	header := message.Header
 	op_code := header.Op_code
-	// length := header.Length
-	// transaction_id := header.Transaction_id
+	transaction_id := header.Transaction_id
 
 	result, err := CalculateResult(op_code, message.Data)
-	_ = result
-
-	fmt.Printf("%s", buf)
+	var m_ptr *Message
+	if err != nil {
+		m_ptr = NewMessage(0, transaction_id, []byte{})
+	}
+	//TODO: create appropriate error messages
+	m_ptr = NewMessage(0, transaction_id, result)
+	m := *m_ptr
+	ser_message := m.SerializeMessage()
+	_, err = c.Write(ser_message)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // CalculateResult calculates the result of the given operation and returns it (or returns error if there is any)
@@ -184,7 +243,7 @@ func CalculateResult(op_code byte, data []byte) (any, error) {
 			set_1 := raw_data[:len(raw_data)/2-1]
 			set_2 := raw_data[len(raw_data):]
 			result := make([]int32, len(raw_data))
-			for i := 0; i < len(raw_data); i++ {
+			for i := range len(raw_data) {
 				if set_1[i] > 60_000 || set_2[i] > 60_000 {
 					return nil, fmt.Errorf("Given number out of range!")
 				}
