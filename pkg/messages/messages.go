@@ -130,9 +130,10 @@ const (
 	Ok Response_code = iota
 	NumberOutOfBounds
 	ListLengthOutOfBounds
+	InvalidOperation
 )
 
-var response_message = map[Response_code]string{
+var Response_message = map[Response_code]string{
 	Ok:                    "Query was successful!",
 	NumberOutOfBounds:     "One or more of the given numbers is out of bounds!",
 	ListLengthOutOfBounds: "Given list(s) have a length that is not permitted!",
@@ -208,6 +209,10 @@ func SerializeResult(result any) ([]byte, error) {
 		for _, i := range v {
 			binary.Write(buf, binary.BigEndian, i)
 		}
+	case []byte:
+		if len(v) > 0 {
+			return nil, fmt.Errorf("Type %T is not supported!", v)
+		}
 	default:
 		return nil, fmt.Errorf("Type %T is not supported!", v)
 	}
@@ -216,7 +221,8 @@ func SerializeResult(result any) ([]byte, error) {
 
 // DeserializeResult returns the result byte stream in its original format
 func DeserializeResult(result []byte, op_code byte) any {
-	if op_code == 0 {
+	switch op_code {
+	case 0:
 		var raw int32
 
 		buf := bytes.NewReader(result)
@@ -225,13 +231,24 @@ func DeserializeResult(result []byte, op_code byte) any {
 			log.Println(err)
 		}
 		return raw
-
-	} else if op_code == 1 {
-		//TODO: implement this
-
-	} else if op_code == 2 {
-		//TODO: implement this
-
+	case 1:
+		var raw float32
+		buf := bytes.NewReader(result)
+		err := binary.Read(buf, binary.BigEndian, &raw)
+		if err != nil {
+			log.Println(err)
+		}
+		return raw
+	case 2:
+		// int32 = 4 bytes
+		// response data = result bytes / 4
+		raw := make([]int32, len(result)/4)
+		buf := bytes.NewReader(result)
+		err := binary.Read(buf, binary.BigEndian, &raw)
+		if err != nil {
+			log.Println(err)
+		}
+		return raw
 	}
 	return nil
 }

@@ -7,7 +7,9 @@ import (
 )
 
 func main() {
-	mess := messages.NewQuery(0, []int8{-3, 3, 1, 1, 1, 1})
+	set1 := []uint16{2, 4, 6}
+	set2 := []uint16{1, 3, 4}
+	mess := messages.NewQuery(2, append(set2, set1...))
 	if mess == nil {
 		return
 	}
@@ -26,9 +28,12 @@ func main() {
 		_, err := c.Conn.Read(buf)
 		if err == nil {
 			message := messages.DeserializeResponse(buf)
-			result := messages.DeserializeResult(message.Result, mess.Header.Op_code)
-			fmt.Println(result)
-			fmt.Println(message)
+			if message.Header.Response_code != messages.Ok {
+				fmt.Println(messages.Response_message[message.Header.Response_code])
+			} else {
+				result := messages.DeserializeResult(message.Result, mess.Header.Op_code)
+				fmt.Println("The result of the operation is:", result)
+			}
 			break
 		}
 	}

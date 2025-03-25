@@ -69,13 +69,13 @@ func handleClient(c net.Conn) {
 	op_code := header.Op_code
 	transaction_id := header.Transaction_id
 
-	result, err := CalculateResult(op_code, message.Data)
+	result, err_code := CalculateResult(op_code, message.Data)
 	var r_ptr *messages.Response
-	if err != nil {
-		r_ptr = messages.NewResponse(0, transaction_id, []byte{})
+	if err_code != messages.Ok {
+		r_ptr = messages.NewResponse(err_code, transaction_id, []byte{})
+	} else {
+		r_ptr = messages.NewResponse(messages.Ok, transaction_id, result)
 	}
-	//TODO: create appropriate error messages
-	r_ptr = messages.NewResponse(0, transaction_id, result)
 	r := *r_ptr
 	ser_response := r.SerializeResponse()
 	_, err = c.Write(ser_response)
@@ -84,52 +84,57 @@ func handleClient(c net.Conn) {
 	}
 }
 
-// CalculateResult calculates the result of the given operation and returns it (or returns error if there is any)
-func CalculateResult(op_code byte, data []byte) (any, error) {
+// CalculateResult calculates the result of the given operation and returns it (or returns an error code if there is any)
+func CalculateResult(op_code byte, data []byte) (any, byte) {
 	var data_type string
-	if op_code == 0 {
+
+	switch op_code {
+	case 0:
 		data_type = "int8"
 		data, err := messages.DeserializeData(data, data_type)
 		if err != nil {
 			log.Println(err)
 		}
-
 		raw_data, ok := data.([]int8)
 		if ok {
+			if len(raw_data) < 2 || len(raw_data) > 10 {
+				return nil, messages.ListLengthOutOfBounds
+			}
 			var product int32
 			product = 1
 			for _, v := range raw_data {
 				if v < -5 || v > 5 {
-					return nil, fmt.Errorf("Given number out of range!")
+					return nil, messages.NumberOutOfBounds
 				}
 				product *= int32(v)
 			}
-			return product, nil
+			return product, messages.Ok
 		}
-	} else if op_code == 1 {
+	case 1:
 		data_type = "uint8"
 		data, err := messages.DeserializeData(data, data_type)
 		if err != nil {
 			log.Println(err)
 		}
-
 		raw_data, ok := data.([]uint8)
 		if ok {
+			if len(raw_data) < 2 || len(raw_data) > 20 {
+				return nil, messages.ListLengthOutOfBounds
+			}
 			var sum uint16
 			sum = 0
 			count := 0
 			for _, v := range raw_data {
 				if v > 200 {
-					return nil, fmt.Errorf("Given number out of range!")
+					return nil, messages.NumberOutOfBounds
 				}
 				sum += uint16(v)
 				count++
 			}
 			avg := float32(sum) / float32(count)
-			return avg, nil
+			return avg, messages.Ok
 		}
-
-	} else if op_code == 2 {
+	case 2:
 		data_type = "uint16"
 		data, err := messages.DeserializeData(data, data_type)
 		if err != nil {
@@ -138,19 +143,22 @@ func CalculateResult(op_code byte, data []byte) (any, error) {
 
 		raw_data, ok := data.([]uint16)
 		if ok {
-			set_1 := raw_data[:len(raw_data)/2-1]
-			set_2 := raw_data[len(raw_data):]
-			result := make([]int32, len(raw_data))
-			for i := range len(raw_data) {
-				if set_1[i] > 60_000 || set_2[i] > 60_000 {
-					return nil, fmt.Errorf("Given number out of range!")
-				}
-				result[i] = int32(set_1[i] - set_2[i])
+			if len(raw_data) < 4 || len(raw_data) > 20 {
+				return nil, messages.ListLengthOutOfBounds
 			}
-			return result, nil
+			set_1 := raw_data[:len(raw_data)/2]
+			set_2 := raw_data[len(raw_data)/2:]
+			result := make([]int32, len(raw_data)/2)
+			for i := range len(raw_data) / 2 {
+				if set_1[i] > 60_000 || set_2[i] > 60_000 {
+					return nil, messages.NumberOutOfBounds
+				}
+				result[i] = int32(set_1[i]) - int32(set_2[i])
+			}
+			return result, messages.Ok
 		}
 	}
-	return nil, fmt.Errorf("Invalid operation!")
+	return nil, messages.InvalidOperation
 }
 
 func (s *Server) CloseServer() {
