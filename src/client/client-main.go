@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/VasilisBebis/TCP-AM/pkg/client"
-	"github.com/VasilisBebis/TCP-AM/pkg/server"
+	"github.com/VasilisBebis/TCP-AM/pkg/messages"
 )
 
 func main() {
-	mess := client.NewMessage(0, []int8{-3, 3, 1, 1, 1, 1})
+	mess := messages.NewQuery(0, []int8{-3, 3, 1, 1, 1, 1})
 	if mess == nil {
 		return
 	}
@@ -19,18 +19,16 @@ func main() {
 
 	fmt.Println()
 	c.ConnectTo(server_ip, server_port)
-	c.SendMessage(*mess)
+	c.SendQuery(*mess)
 	buf := make([]byte, 256)
-	fmt.Println(mess.Header.Transaction_id)
 
 	for {
 		_, err := c.Conn.Read(buf)
 		if err == nil {
-			message := server.DeserializeMessage(buf)
-			result := server.DeserializeResult(message.Result, mess.Header.Op_code)
+			message := messages.DeserializeResponse(buf)
+			result := messages.DeserializeResult(message.Result, mess.Header.Op_code)
 			fmt.Println(result)
 			fmt.Println(message)
-
 			break
 		}
 	}
